@@ -1,72 +1,204 @@
-# Architecture Overview
+# IPFIX Service Architecture Guide
 
-## System Architecture
+## Overview
 
-The IPFIX OData Service implements a modern, cloud-native architecture designed for high performance, scalability, and maintainability. The system follows Domain-Driven Design (DDD) principles with a clean architecture pattern.
+The IPFIX OData Service implements a **hexagonal architecture** (also known as ports and adapters pattern) that provides exceptional flexibility in deployment scenarios. This architectural approach enables seamless switching between different persistence technologies without affecting the core business logic.
 
-## High-Level Architecture
+## Hexagonal Architecture Implementation
+
+### Core Principles
+
+The hexagonal architecture ensures clean separation of concerns by organizing the system into distinct layers:
+
+```
+                    ┌─────────────────────────────────────┐
+                    │          External World             │
+                    │  (OData Clients, Monitoring, etc)  │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │         Primary Ports              │
+                    │  (OData Controller, REST APIs)     │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │       Business Logic Core          │
+                    │                                     │
+                    │  ┌─────────────────────────────┐   │
+                    │  │   FlowRecord Processing     │   │
+                    │  │   User Management          │   │
+                    │  │   Search Algorithms        │   │
+                    │  │   Query Optimization       │   │
+                    │  └─────────────────────────────┘   │
+                    │                                     │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │        Secondary Ports             │
+                    │  (SearchService, CacheService)     │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │       Adapters Layer               │
+                    │                                     │
+                    │  ┌──────────────┐ ┌─────────────┐  │
+                    │  │    Lucene    │ │    Solr     │  │
+                    │  │   Adapter    │ │  Adapter    │  │
+                    │  └──────────────┘ └─────────────┘  │
+                    │                                     │
+                    │  ┌──────────────┐ ┌─────────────┐  │
+                    │  │   Ignite     │ │  External   │  │
+                    │  │   Adapter    │ │    APIs     │  │
+                    │  └──────────────┘ └─────────────┘  │
+                    └─────────────────────────────────────┘
+```
+
+### Architecture Benefits
+
+1. **Technology Independence**: Core business logic is completely isolated from infrastructure concerns
+2. **Testability**: Easy to test business logic with mock adapters
+3. **Flexibility**: Simple configuration changes enable different deployment modes
+4. **Maintainability**: Clear separation of concerns reduces coupling
+5. **Evolution**: Easy to add new persistence technologies without touching business logic
+
+## Persistence Strategy Architecture
+
+### Deployment Patterns
+
+The service supports three primary deployment patterns, each optimized for different use cases. The hexagonal architecture enables switching between these patterns through simple configuration changes:
+
+#### 1. **Standalone Mode (Lucene Core)**
+
+```
+┌─────────────────────────────────────────────────┐
+│              Single Instance                    │
+│                                                 │
+│  ┌─────────────────────────────────────────┐   │
+│  │         IPFIX Service                   │   │
+│  │                                         │   │
+│  │  ┌─────────────┐  ┌─────────────────┐  │   │
+│  │  │   Ignite    │  │   Lucene Core   │  │   │
+│  │  │   Cache     │  │   (Embedded)    │  │   │
+│  │  │             │  │                 │  │   │
+│  │  │ • Users     │  │ • FlowRecords   │  │   │
+│  │  │ • Metadata  │  │ • Full-text     │  │   │
+│  │  │ • Sessions  │  │ • Real-time     │  │   │
+│  │  └─────────────┘  └─────────────────┘  │   │
+│  └─────────────────────────────────────────┘   │
+│                                                 │
+│  Local Storage: ./data/                         │
+└─────────────────────────────────────────────────┘
+
+Configuration:
+search.provider=lucene
+lucene.index.path=./data/lucene-indices
+
+Use Cases:
+• Development and testing
+• Small to medium deployments (< 1M records)
+• Edge computing scenarios
+• Embedded systems
+• Quick proof of concepts
+```
+
+#### 2. **Cluster Mode (Solr Distributed)**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                          Client Layer                          │
-├─────────────────────────────────────────────────────────────────┤
-│  Web Browsers  │  BI Tools  │  Applications  │  API Clients    │
-│  (JavaScript)  │ (PowerBI)  │   (Python)     │    (REST)       │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-                            ┌───────▼───────┐
-                            │   Load        │
-                            │  Balancer     │
-                            │  (Optional)   │
-                            └───────┬───────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                      API Gateway Layer                         │
-├─────────────────────────────────────────────────────────────────┤
-│                     OData v4 Endpoint                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │   $filter   │ │   $select   │ │  $orderby   │   Query      │
-│  │   $expand   │ │    $top     │ │   $count    │  Processing  │
-│  │    $skip    │ │  $metadata  │ │   $batch    │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                   Application Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │   Spring    │ │   Apache    │ │  Security   │              │
-│  │    Boot     │ │   Olingo    │ │  & Audit    │              │
-│  │  Framework  │ │  OData v4   │ │  Logging    │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                    Domain Layer                                │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │   Flow      │ │   Query     │ │  Business   │              │
-│  │  Records    │ │ Processing  │ │   Rules     │              │
-│  │  Entities   │ │   Engine    │ │ Validation  │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                 Infrastructure Layer                           │
-├─────────────────────────────────────────────────────────────────┤
-│            Dual Persistence Architecture                       │
-│  ┌─────────────────────────┐ ┌─────────────────────────┐      │
-│  │     Apache Ignite       │ │     Apache Lucene       │      │
-│  │   In-Memory Database    │ │    Search Engine        │      │
-│  │                         │ │                         │      │
-│  │ • Real-time Processing  │ │ • Full-text Search      │      │
-│  │ • Distributed Caching   │ │ • Advanced Indexing     │      │
-│  │ • ACID Transactions     │ │ • Analytics Engine      │      │
-│  │ • SQL-like Queries      │ │ • Faceted Search        │      │
-│  │ • Horizontal Scaling    │ │ • Relevance Scoring     │      │
-│  │ • Persistent Storage    │ │ • Real-time Updates     │      │
-│  └─────────────────────────┘ └─────────────────────────┘      │
-└─────────────────────────────────────────────────────────────────┘
+│                    Load Balancer                               │
+└─────────────┬───────────────┬───────────────┬───────────────────┘
+              │               │               │
+┌─────────────▼─┐   ┌─────────▼─┐   ┌─────────▼─┐
+│ IPFIX Node 1  │   │ IPFIX Node 2│   │ IPFIX Node 3│
+│               │   │             │   │             │
+│ ┌───────────┐ │   │ ┌─────────┐ │   │ ┌─────────┐ │
+│ │  Ignite   │ │   │ │ Ignite  │ │   │ │ Ignite  │ │
+│ │ Cluster   │◄┼───┼►│Cluster  │◄┼───┼►│Cluster  │ │
+│ └───────────┘ │   │ └─────────┘ │   │ └─────────┘ │
+│               │   │             │   │             │
+│ ┌───────────┐ │   │ ┌─────────┐ │   │ ┌─────────┐ │
+│ │Solr Client│ │   │ │Solr     │ │   │ │Solr     │ │
+│ │           │ │   │ │Client   │ │   │ │Client   │ │
+│ └─────┬─────┘ │   │ └────┬────┘ │   │ └────┬────┘ │
+└───────┼───────┘   └──────┼──────┘   └──────┼──────┘
+        │                  │                 │
+        └──────────────────┼─────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────┐
+│                Solr Cluster                        │
+│                                                     │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
+│  │ Solr Node 1 │  │ Solr Node 2 │  │ Solr Node 3 │ │
+│  │             │  │             │  │             │ │
+│  │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────┐ │ │
+│  │ │ Shard 1 │ │  │ │ Shard 2 │ │  │ │ Shard 3 │ │ │
+│  │ │Replica A│ │  │ │Replica A│ │  │ │Replica A│ │ │
+│  │ └─────────┘ │  │ └─────────┘ │  │ └─────────┘ │ │
+│  │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────┐ │ │
+│  │ │ Shard 2 │ │  │ │ Shard 3 │ │  │ │ Shard 1 │ │ │
+│  │ │Replica B│ │  │ │Replica B│ │  │ │Replica B│ │ │
+│  │ └─────────┘ │  │ └─────────┘ │  │ └─────────┘ │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘ │
+└─────────────────────────────────────────────────────┘
+
+Configuration:
+search.provider=solr
+solr.url=http://solr-cluster:8983/solr
+solr.collection=ipfix-flows
+
+Use Cases:
+• High availability production systems
+• Large-scale data processing (10M+ records)
+• Enterprise deployments
+• Multi-tenant environments
+• Global distributed systems
+```
+
+#### 3. **Hybrid Mode (Standalone + External Solr)**
+
+```
+┌─────────────────────────────────────────────────┐
+│              Single Instance                    │
+│                                                 │
+│  ┌─────────────────────────────────────────┐   │
+│  │         IPFIX Service                   │   │
+│  │                                         │   │
+│  │  ┌─────────────┐  ┌─────────────────┐  │   │
+│  │  │   Ignite    │  │   Solr Client   │  │   │
+│  │  │   Cache     │  │                 │  │   │
+│  │  │             │  │ • External Solr │  │   │
+│  │  │ • Users     │  │ • Shared Index  │  │   │
+│  │  │ • Metadata  │  │ • Advanced      │  │   │
+│  │  │ • Sessions  │  │   Features      │  │   │
+│  │  └─────────────┘  └────────┬────────┘  │   │
+│  └─────────────────────────────┼───────────┘   │
+└─────────────────────────────────┼───────────────┘
+                                  │
+                   Network        │
+                                  │
+┌─────────────────────────────────▼───────────────┐
+│            External Solr Cluster               │
+│                                                 │
+│  ┌─────────────┐  ┌─────────────┐              │
+│  │ Solr Node 1 │  │ Solr Node 2 │              │
+│  │             │  │             │              │
+│  │ • Shared by │  │ • Shared by │              │
+│  │   multiple  │  │   multiple  │              │
+│  │   services  │  │   services  │              │
+│  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────┘
+
+Configuration:
+search.provider=solr
+solr.url=http://external-solr:8983/solr
+solr.collection=shared-ipfix-flows
+
+Use Cases:
+• Shared search infrastructure
+• Cost optimization scenarios
+• Gradual migration to clusters
+• Multi-service architectures
+• Resource consolidation
 ```
 
 ## Component Architecture
@@ -203,20 +335,13 @@ public class LuceneConfig {
 │ (Client)    │    │ & Planning  │    │  Strategy   │
 └─────────────┘    └─────────────┘    └─────────────┘
                                               │
-                           ┌──────────────────┼──────────────────┐
-                           │                  │                  │
-                   ┌───────▼──────┐  ┌────────▼────────┐  ┌─────▼─────┐
-                   │    Ignite    │  │     Lucene      │  │   Memory  │
-                   │ (Structured  │  │ (Full-text &    │  │  Fallback │
-                   │  Queries)    │  │  Analytics)     │  │           │
-                   └──────┬───────┘  └────────┬────────┘  └─────┬─────┘
-                          │                   │                 │
-                          └───────────────────┼─────────────────┘
-                                              │
                                     ┌─────────▼─────────┐
-                                    │    Response       │
-                                    │   Aggregation     │
-                                    │   & Formatting    │
+                                    │   Cost-Based      │
+                                    │   Optimizer       │
+                                    │                   │
+                                    │ • Index Selection │
+                                    │ • Join Strategy   │
+                                    │ • Cache Utilization│
                                     └───────────────────┘
 ```
 
@@ -527,3 +652,215 @@ spec:
 ```
 
 This architecture provides a solid foundation for a high-performance, scalable IPFIX OData service that can handle enterprise-level workloads while maintaining data consistency and providing excellent query performance through the dual persistence strategy.
+
+## Port and Adapter Pattern Implementation
+
+### Port Interfaces
+
+The hexagonal architecture defines clear contracts between the business logic and external systems:
+
+#### **Primary Ports (Inbound)**
+```java
+// OData API entry point
+public interface ODataController {
+    ResponseEntity<?> getFlowRecords(String filter, String orderBy, Integer top);
+    ResponseEntity<?> getUsers(String filter);
+    ResponseEntity<?> getMetadata();
+}
+
+// REST API for direct access
+public interface FlowRecordController {
+    List<FlowRecord> findFlowRecords(SearchCriteria criteria);
+    FlowRecord getFlowRecord(String id);
+}
+```
+
+#### **Secondary Ports (Outbound)**
+```java
+// Search abstraction - core interface
+public interface SearchService {
+    List<FlowRecord> searchFlowRecords(String tenantId, String query);
+    void indexFlowRecord(FlowRecord record);
+    void deleteFlowRecord(String id);
+    long count(String tenantId, String query);
+    void createIndex(String tenantId);
+}
+
+// Cache abstraction
+public interface CacheService {
+    void put(String key, Object value);
+    <T> T get(String key, Class<T> type);
+    void evict(String key);
+    void clear();
+}
+
+// Repository abstraction
+public interface FlowRecordRepository {
+    void save(FlowRecord record);
+    Optional<FlowRecord> findById(String id);
+    List<FlowRecord> findByTenant(String tenantId);
+}
+```
+
+### Adapter Implementations
+
+#### **Lucene Adapter** (Standalone Mode)
+```java
+@Component
+@ConditionalOnProperty(name = "search.provider", havingValue = "lucene")
+@Profile({"standalone", "dev", "test"})
+public class LuceneSearchService implements SearchService {
+    
+    private final LuceneIndexManager indexManager;
+    private final LuceneQueryBuilder queryBuilder;
+    
+    @Override
+    public List<FlowRecord> searchFlowRecords(String tenantId, String query) {
+        try {
+            IndexSearcher searcher = indexManager.getSearcher(tenantId);
+            Query luceneQuery = queryBuilder.buildQuery(query);
+            TopDocs results = searcher.search(luceneQuery, 1000);
+            
+            return Arrays.stream(results.scoreDocs)
+                .map(scoreDoc -> documentToFlowRecord(searcher.doc(scoreDoc.doc)))
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new SearchException("Lucene search failed", e);
+        }
+    }
+    
+    @Override
+    public void indexFlowRecord(FlowRecord record) {
+        try {
+            IndexWriter writer = indexManager.getWriter(record.getTenantId());
+            Document doc = flowRecordToDocument(record);
+            writer.addDocument(doc);
+            writer.commit();
+        } catch (IOException e) {
+            throw new SearchException("Lucene indexing failed", e);
+        }
+    }
+    
+    // Additional implementation details...
+}
+```
+
+#### **Solr Adapter** (Cluster/Hybrid Mode)
+```java
+@Component
+@ConditionalOnProperty(name = "search.provider", havingValue = "solr")
+@Profile({"cluster", "hybrid", "prod"})
+public class SolrSearchService implements SearchService {
+    
+    private final SolrClient solrClient;
+    private final SolrQueryBuilder queryBuilder;
+    
+    @Value("${solr.collection}")
+    private String collectionName;
+    
+    @Override
+    public List<FlowRecord> searchFlowRecords(String tenantId, String query) {
+        try {
+            SolrQuery solrQuery = queryBuilder.buildQuery(query, tenantId);
+            QueryResponse response = solrClient.query(collectionName, solrQuery);
+            
+            return response.getBeans(FlowRecord.class);
+        } catch (SolrServerException | IOException e) {
+            throw new SearchException("Solr search failed", e);
+        }
+    }
+    
+    @Override
+    public void indexFlowRecord(FlowRecord record) {
+        try {
+            solrClient.addBean(collectionName, record);
+            solrClient.commit(collectionName);
+        } catch (SolrServerException | IOException e) {
+            throw new SearchException("Solr indexing failed", e);
+        }
+    }
+    
+    // Additional implementation details...
+}
+```
+
+#### **Ignite Cache Adapter** (All Modes)
+```java
+@Component
+@ConditionalOnProperty(name = "ignite.enabled", havingValue = "true", matchIfMissing = true)
+public class IgniteCacheService implements CacheService {
+    
+    private final Ignite ignite;
+    
+    @Override
+    public void put(String key, Object value) {
+        IgniteCache<String, Object> cache = ignite.getOrCreateCache("default");
+        cache.put(key, value);
+    }
+    
+    @Override
+    public <T> T get(String key, Class<T> type) {
+        IgniteCache<String, Object> cache = ignite.getOrCreateCache("default");
+        Object value = cache.get(key);
+        return type.cast(value);
+    }
+    
+    // Additional implementation details...
+}
+```
+
+## Configuration-Driven Adapter Selection
+
+### Spring Configuration
+```java
+@Configuration
+@EnableConfigurationProperties(SearchProperties.class)
+public class PersistenceConfiguration {
+    
+    @Bean
+    @ConditionalOnProperty(name = "search.provider", havingValue = "lucene")
+    public SearchService luceneSearchService(LuceneProperties properties) {
+        return new LuceneSearchService(properties);
+    }
+    
+    @Bean
+    @ConditionalOnProperty(name = "search.provider", havingValue = "solr")
+    public SearchService solrSearchService(SolrProperties properties) {
+        return new SolrSearchService(properties);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean(SearchService.class)
+    public SearchService memorySearchService() {
+        return new InMemorySearchService(); // Fallback implementation
+    }
+}
+```
+
+### Configuration Properties
+```java
+@ConfigurationProperties(prefix = "search")
+@Data
+public class SearchProperties {
+    private String provider = "lucene"; // Default to Lucene
+    private LuceneProperties lucene = new LuceneProperties();
+    private SolrProperties solr = new SolrProperties();
+}
+
+@Data
+public class LuceneProperties {
+    private String indexPath = "./data/lucene-indices";
+    private boolean fallbackMemory = true;
+    private int ramBufferSizeMB = 256;
+    private int maxMergeMB = 500;
+}
+
+@Data
+public class SolrProperties {
+    private String url = "http://localhost:8983/solr";
+    private String collection = "ipfix-flows";
+    private int connectionTimeout = 5000;
+    private int socketTimeout = 10000;
+    private int maxConnections = 100;
+}
+```

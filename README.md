@@ -1,15 +1,47 @@
 # IPFIX OData Service (IPjFIXsvc)
 
-This app is a component of the IPFIX-scenario-AI solution
-
-Test readme (wip) !
 
 
-> **High-Performance IPFIX Flow Data Service with Dual NoSQL Persistence and Complete OData v4 Support**
+> **High-Performance IPFIX Flow Data Service with Hexagonal Architecture and Flexible Persistence Strategies**
 
-A production-ready, enterprise-grade service for processing and querying IPFIX (Internet Protocol Flow Information Export) flow records through a standards-compliant OData v4 API. Features a sophisticated dual NoSQL persistence architecture combining Apache Ignite for high-speed in-memory processing and Apache Lucene for advanced full-text search capabilities.
+A production-ready, enterprise-grade service for processing and querying IPFIX (Internet Protocol Flow Information Export) flow records through a standards-compliant OData v4 API. Built with **hexagonal architecture** principles, enabling seamless deployment from standalone instances with embedded Apache Lucene to distributed clusters with Apache Solr, while maintaining Apache Ignite for high-speed in-memory processing.
 
-## 🏗️ Architecture Overview
+## 🏗️ **Hexagonal Architecture & Flexible Persistence**
+
+This service implements a **hexagonal (ports and adapters) architecture** that enables seamless switching between different persistence technologies based on deployment requirements:
+
+### **Deployment Modes**
+
+| Mode | Search Technology | Use Case | Configuration |
+|------|------------------|-----------|---------------|
+| **Standalone** | Apache Lucene Core | Single instance, embedded search | `search.provider=lucene` |
+| **Cluster/HA** | Apache Solr | Distributed, high availability | `search.provider=solr` |
+| **Hybrid** | External Solr | Standalone with external search | `search.provider=solr` |
+
+### **Persistence Architecture**
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   OData Layer   │    │  Business Logic  │    │  Search Layer   │
+│                 │    │  (Hexagonal Core)│    │                 │
+├─────────────────┤    ├──────────────────┤    ├─────────────────┤
+│ • $filter       │───▶│ • FlowRecord     │───▶│ Lucene Core OR  │
+│ • $orderby      │    │   Processing     │    │ Apache Solr     │
+│ • $select       │    │ • User Management│    │ (Configurable)  │
+│ • Complex Query │    │ • Search Logic   │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                ▲                        ▲
+                                │                        │
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │  Cache Layer    │    │  Port/Adapter   │
+                       │                 │    │   Interface     │
+                       ├─────────────────┤    ├─────────────────┤
+                       │ Apache Ignite   │    │ SearchService   │
+                       │ • In-memory     │    │ • Lucene Impl   │
+                       │ • Distributed   │    │ • Solr Impl     │
+                       │ • ACID Trans    │    │ • Auto-Selected │
+                       └─────────────────┘    └─────────────────┘
+```
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -36,25 +68,32 @@ A production-ready, enterprise-grade service for processing and querying IPFIX (
 
 ## 🚀 Key Features
 
-### 📊 **Dual NoSQL Persistence Architecture**
+### **Enterprise Architecture**
+- **Hexagonal Design**: Clean separation between business logic and infrastructure
+- **Pluggable Storage**: Switch between Lucene Core and Solr without code changes
+- **Configuration-Driven**: Simple property changes enable different deployment modes
+- **Zero-Downtime Migration**: Move from standalone to cluster seamlessly
 
-#### **Apache Ignite (Primary Storage)**
-- **In-Memory Computing Platform**: Ultra-fast data access with optional persistence
-- **Distributed Caching**: Automatic data distribution across cluster nodes
-- **ACID Transactions**: Full transactional support for data consistency
-- **SQL-like Queries**: Standard SQL syntax for complex data operations
-- **Auto-scaling**: Dynamic cluster expansion and load balancing
-- **Persistence**: Optional write-through/write-behind to disk
+### **Dual NoSQL Persistence**
+- **Apache Ignite**: High-performance in-memory cache for user management and metadata
+  - In-memory processing with optional persistence
+  - Distributed caching for cluster deployments
+  - ACID transaction support
+  - Sub-millisecond query response times
 
-#### **Apache Lucene (Search Engine)**
-- **Full-Text Search**: Advanced text analysis and searching capabilities
-- **Real-time Indexing**: Immediate search availability for new data
-- **Faceted Search**: Multi-dimensional data exploration
-- **Relevance Scoring**: Intelligent result ranking
-- **Analytics**: Aggregations and statistical analysis
-- **Memory Fallback**: Automatic fallback when persistent storage unavailable
+- **Apache Lucene Core** (Standalone Mode):
+  - Embedded full-text search engine
+  - Real-time indexing and querying
+  - Minimal resource footprint
+  - Perfect for single-instance deployments
 
-### 🌐 **Complete OData v4 Implementation**
+- **Apache Solr** (Cluster/HA Mode):
+  - Distributed search platform
+  - Horizontal scaling and replication
+  - Advanced analytics and faceting
+  - Enterprise-grade monitoring and management
+
+### **Complete OData v4 Implementation**
 
 #### **Standard Query Operations**
 - **`$filter`**: Complex filtering with boolean logic, comparison operators
@@ -108,6 +147,31 @@ A production-ready, enterprise-grade service for processing and querying IPFIX (
 - **JMX Monitoring**: JVM and application metrics exposure
 - **Distributed Tracing**: Request flow tracking across components
 
+## 🔍 **Architecture Benefits**
+
+### **Hexagonal Architecture Advantages**
+1. **Technology Independence**: Business logic unaffected by storage technology changes
+2. **Easy Testing**: Mock adapters for unit testing business logic
+3. **Deployment Flexibility**: Same codebase for different environments
+4. **Migration Safety**: Zero-risk migration between Lucene and Solr
+5. **Future-Proofing**: Easy integration of new search technologies
+
+### **Persistence Strategy Benefits**
+1. **Lucene Core**: Perfect for development, testing, and small deployments
+2. **Apache Solr**: Enterprise-grade distributed search for production clusters
+3. **Smooth Migration**: Configuration-driven switching between technologies
+4. **Cost Optimization**: Choose complexity level based on actual requirements
+
+### **When to Use Each Mode**
+
+| Scenario | Recommended Mode | Reasoning |
+|----------|------------------|-----------|
+| Development/Testing | Standalone (Lucene) | Embedded, no external dependencies |
+| Small Production (<1M records) | Standalone (Lucene) | Simple deployment, optimal performance |
+| Medium Production (1M-10M records) | Hybrid (Solr) | Shared infrastructure, better scaling |
+| Large Production (10M+ records) | Cluster (Solr) | Full distributed architecture |
+| Multi-tenant SaaS | Cluster (Solr) | Isolation, scaling, and management |
+
 ## 🛠️ Technology Stack
 
 | Component | Technology | Version | Purpose |
@@ -116,7 +180,8 @@ A production-ready, enterprise-grade service for processing and querying IPFIX (
 | **Framework** | Spring Boot | 3.5.3 | Enterprise application framework |
 | **OData** | Apache Olingo | 5.0.0 | OData v4 protocol implementation |
 | **In-Memory DB** | Apache Ignite | 2.16.0 | Distributed computing platform |
-| **Search Engine** | Apache Lucene | 10.2.2 | Full-text search and indexing |
+| **Search Engine (Standalone)** | Apache Lucene | 10.2.2 | Embedded full-text search and indexing |
+| **Search Engine (Cluster)** | Apache Solr | 9.x | Distributed search platform |
 | **Build Tool** | Maven | 3.9+ | Dependency management and build |
 | **Containerization** | Docker | 20.10+ | Production deployment |
 
@@ -236,7 +301,49 @@ GET /odata/FlowRecords/$metadata
 
 ## 🔧 Configuration
 
-### Application Properties
+### **Deployment Mode Selection**
+```properties
+# Standalone mode (embedded Lucene)
+search.provider=lucene
+lucene.index.path=./data/lucene-indices
+lucene.fallback.memory=true
+
+# Cluster mode (external Solr)
+search.provider=solr
+solr.url=http://solr-cluster:8983/solr
+solr.collection=ipfix-flows
+solr.connection.timeout=5000
+
+# Hybrid mode (standalone + external Solr)
+search.provider=solr
+solr.url=http://external-solr:8983/solr
+solr.collection=shared-ipfix-flows
+```
+
+### **Ignite Configuration**
+```properties
+# Enable/disable Ignite
+ignite.enabled=true
+ignite.instance.name=ipfix-ignite-instance
+ignite.work.directory=/tmp/ignite-work
+
+# Cluster discovery (for HA deployments)
+ignite.discovery.addresses=node1:47500,node2:47500,node3:47500
+```
+
+### **Application Profiles**
+```bash
+# Development with embedded Lucene
+./mvnw spring-boot:run -Dspring.profiles.active=dev,lucene
+
+# Production standalone
+./mvnw spring-boot:run -Dspring.profiles.active=prod,standalone
+
+# Production cluster with Solr
+./mvnw spring-boot:run -Dspring.profiles.active=prod,cluster,solr
+```
+
+### **Application Properties**
 ```properties
 # Server Configuration
 server.port=8888
@@ -483,7 +590,7 @@ mvn site
 ## 📋 Roadmap
 
 ### Upcoming Features
-- [ ] **GraphQL API**: Alternative query interface
+- [ ] **GraphQL API**: Alternative query interface (Interoperability with GraphQL clients)
 - [ ] **Event Streaming**: Apache Kafka integration
 - [ ] **Machine Learning**: Anomaly detection
 - [ ] **Multi-tenancy**: Tenant isolation and management
@@ -503,15 +610,6 @@ mvn site
 - **[Docker Deployment Guide](DOCKER_DEPLOYMENT.md)** - Container deployment
 - **[Performance Tuning Guide](docs/performance-tuning.md)** - Optimization guide
 - **[Architecture Guide](docs/architecture.md)** - Detailed system design
-
-### Community
-- **Issues**: GitHub Issues for bug reports
-- **Discussions**: GitHub Discussions for questions
-- **Wiki**: Comprehensive documentation and examples
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
