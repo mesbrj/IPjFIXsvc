@@ -1,3 +1,7 @@
+# tests
+data/
+logs/
+
 # Maven
 target/
 
