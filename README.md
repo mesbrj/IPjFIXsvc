@@ -1,10 +1,9 @@
 # IPFIX OData Service (IPjFIXsvc)
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![OData](https://img.shields.io/badge/OData-v4-blue.svg)](https://www.odata.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+This app is a component of the IPFIX-scenario-AI solution
+
+Test readme (wip) !
+
 
 > **High-Performance IPFIX Flow Data Service with Dual NoSQL Persistence and Complete OData v4 Support**
 
