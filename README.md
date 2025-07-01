@@ -589,6 +589,9 @@ mvn site
 
 ## 📋 Roadmap
 
+- [ ] **Update code to a true hexagonal architecture**: Ports/interfaces and adapters for better separation of concerns
+- [ ] **Enhance OData v4 compliance**: Full support for all query options and protocol features
+
 ### Upcoming Features
 - [ ] **GraphQL API**: Alternative query interface (Interoperability with GraphQL clients)
 - [ ] **Event Streaming**: Apache Kafka integration

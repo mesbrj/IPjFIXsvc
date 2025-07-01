@@ -12,44 +12,49 @@ The hexagonal architecture ensures clean separation of concerns by organizing th
 
 ```
                     ┌─────────────────────────────────────┐
-                    │          External World             │
-                    │  (OData Clients, Monitoring, etc)  │
-                    └─────────────┬───────────────────────┘
-                                  │
-                    ┌─────────────▼───────────────────────┐
-                    │         Primary Ports              │
-                    │  (OData Controller, REST APIs)     │
-                    └─────────────┬───────────────────────┘
-                                  │
-                    ┌─────────────▼───────────────────────┐
-                    │       Business Logic Core          │
-                    │                                     │
-                    │  ┌─────────────────────────────┐   │
-                    │  │   FlowRecord Processing     │   │
-                    │  │   User Management          │   │
-                    │  │   Search Algorithms        │   │
-                    │  │   Query Optimization       │   │
-                    │  └─────────────────────────────┘   │
+                    │      External World                 │
                     │                                     │
                     └─────────────┬───────────────────────┘
                                   │
                     ┌─────────────▼───────────────────────┐
-                    │        Secondary Ports             │
-                    │  (SearchService, CacheService)     │
+                    │       Web, CLI/Terminal - Adapters  │
+                    │  (OData Controller, REST APIs, ...) │
                     └─────────────┬───────────────────────┘
                                   │
                     ┌─────────────▼───────────────────────┐
-                    │       Adapters Layer               │
+                    │      input ports                    │
+                    │      Analysis, queries, commands... │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │       Business Logic Core / Models  │
                     │                                     │
-                    │  ┌──────────────┐ ┌─────────────┐  │
-                    │  │    Lucene    │ │    Solr     │  │
-                    │  │   Adapter    │ │  Adapter    │  │
-                    │  └──────────────┘ └─────────────┘  │
+                    │  ┌─────────────────────────────┐    │
+                    │  │   FlowRecord Processing     │    │
+                    │  │   User Management           │    │
+                    │  │   Search Algorithms         │    │
+                    │  │   Query Optimization        │    │
+                    │  └─────────────────────────────┘    │
                     │                                     │
-                    │  ┌──────────────┐ ┌─────────────┐  │
-                    │  │   Ignite     │ │  External   │  │
-                    │  │   Adapter    │ │    APIs     │  │
-                    │  └──────────────┘ └─────────────┘  │
+                    └─────────────┬───────────────────────┘
+                                  │
+                    ┌─────────────▼─────────────────────────────────────────┐
+                    │        Infrastructure Ports                           │
+                    │  (SearchService, CacheService, in_memory data, ipfix) │
+                    └─────────────┬─────────────────────────────────────────┘
+                                  │
+                    ┌─────────────▼───────────────────────┐
+                    │       Infrastructure Adapters       │
+                    │                                     │
+                    │  ┌──────────────┐ ┌─────────────┐   │
+                    │  │    Lucene    │ │    Solr     │   │
+                    │  │   Adapter    │ │  Adapter    │   │
+                    │  └──────────────┘ └─────────────┘   │
+                    │                                     │
+                    │  ┌──────────────┐ ┌─────────────┐   │
+                    │  │   Ignite     │ │  IPyFIXweb  │   │
+                    │  │   Adapter    │ │    APIs     │   │
+                    │  └──────────────┘ └─────────────┘   │
                     └─────────────────────────────────────┘
 ```
 
