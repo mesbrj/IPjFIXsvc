@@ -1,97 +1,31 @@
 # IPFIX OData Service (IPjFIXsvc)
 
-
-
 > **High-Performance IPFIX Flow Data Service with Hexagonal Architecture and Flexible Persistence Strategies**
 
-A production-ready, enterprise-grade service for processing and querying IPFIX (Internet Protocol Flow Information Export) flow records through a standards-compliant OData v4 API. Built with **hexagonal architecture** principles, enabling seamless deployment from standalone instances with embedded Apache Lucene to distributed clusters with Apache Solr, while maintaining Apache Ignite for high-speed in-memory processing.
-
-## 🏗️ **Hexagonal Architecture & Flexible Persistence**
-
-This service implements a **hexagonal (ports and adapters) architecture** that enables seamless switching between different persistence technologies based on deployment requirements:
-
-### **Deployment Modes**
-
-| Mode | Search Technology | Use Case | Configuration |
-|------|------------------|-----------|---------------|
-| **Standalone** | Apache Lucene Core | Single instance, embedded search | `search.provider=lucene` |
-| **Cluster/HA** | Apache Solr | Distributed, high availability | `search.provider=solr` |
-| **Hybrid** | External Solr | Standalone with external search | `search.provider=solr` |
-
-### **Persistence Architecture**
+A production-ready, enterprise-grade service for processing and querying IPFIX (Internet Protocol Flow Information Export) flow records through a standards-compliant OData v4 API with embedded Apache Lucene (temp data storage/processing), Apache Solr, and Apache Ignite for high-speed in-memory processing.
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   OData Layer   │    │  Business Logic  │    │  Search Layer   │
 │                 │    │  (Hexagonal Core)│    │                 │
 ├─────────────────┤    ├──────────────────┤    ├─────────────────┤
-│ • $filter       │───▶│ • FlowRecord     │───▶│ Lucene Core OR  │
+│ • $filter       │──> │ • FlowRecord     │──> │ Lucene Core /   │
 │ • $orderby      │    │   Processing     │    │ Apache Solr     │
-│ • $select       │    │ • User Management│    │ (Configurable)  │
+│ • $select       │    │ • User Management│    │                 │
 │ • Complex Query │    │ • Search Logic   │    │                 │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-                                ▲                        ▲
+                                ^                        ^
                                 │                        │
                        ┌─────────────────┐    ┌─────────────────┐
-                       │  Cache Layer    │    │  Port/Adapter   │
-                       │                 │    │   Interface     │
+                       │  Port/Adapter   │    │  Port/Adapter   │
+                       │   Interface     │    │   Interface     │
                        ├─────────────────┤    ├─────────────────┤
                        │ Apache Ignite   │    │ SearchService   │
                        │ • In-memory     │    │ • Lucene Impl   │
                        │ • Distributed   │    │ • Solr Impl     │
-                       │ • ACID Trans    │    │ • Auto-Selected │
+                       │ • ACID Trans    │    │                 │
                        └─────────────────┘    └─────────────────┘
 ```
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   OData v4 API  │────│  Spring Boot     │────│  Flow Records   │
-│   REST Endpoint │    │  Application     │    │  Processing     │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Apache Olingo   │    │  Dual Persistence│    │   Query Engine  │
-│ OData Framework │    │  Architecture    │    │   & Filtering   │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                    ┌───────────┴────────────┐
-                    │                        │
-            ┌───────▼──────┐        ┌────────▼────────┐
-            │ Apache Ignite│        │ Apache Lucene   │
-            │ In-Memory DB │        │ Search Engine   │
-            │ • Real-time  │        │ • Full-text     │
-            │ • Caching    │        │ • Indexing      │
-            │ • Clustering │        │ • Analytics     │
-            └──────────────┘        └─────────────────┘
-```
-
-## 🚀 Key Features
-
-### **Enterprise Architecture**
-- **Hexagonal Design**: Clean separation between business logic and infrastructure
-- **Pluggable Storage**: Switch between Lucene Core and Solr without code changes
-- **Configuration-Driven**: Simple property changes enable different deployment modes
-- **Zero-Downtime Migration**: Move from standalone to cluster seamlessly
-
-### **Dual NoSQL Persistence**
-- **Apache Ignite**: High-performance in-memory cache for user management and metadata
-  - In-memory processing with optional persistence
-  - Distributed caching for cluster deployments
-  - ACID transaction support
-  - Sub-millisecond query response times
-
-- **Apache Lucene Core** (Standalone Mode):
-  - Embedded full-text search engine
-  - Real-time indexing and querying
-  - Minimal resource footprint
-  - Perfect for single-instance deployments
-
-- **Apache Solr** (Cluster/HA Mode):
-  - Distributed search platform
-  - Horizontal scaling and replication
-  - Advanced analytics and faceting
-  - Enterprise-grade monitoring and management
 
 ### **Complete OData v4 Implementation**
 
@@ -113,79 +47,11 @@ This service implements a **hexagonal (ports and adapters) architecture** that e
 
 #### **Data Format Support**
 - **JSON**: Default format with full metadata support
-- **XML**: Alternative format for legacy systems
+- **XML**: Alternative format
 - **Custom Media Types**: Extensible content negotiation
 - **Metadata**: `$metadata` endpoint for service discovery
 
-### ⚡ **Performance & Scalability**
-
-#### **G1 Garbage Collector Optimization**
-- **Low-Latency**: Target pause times under 200ms
-- **Memory Efficient**: Optimized heap management (512MB - 2GB)
-- **Production Tuned**: Extensive JVM parameter optimization
-- **Monitoring**: Comprehensive GC logging and metrics
-
-#### **High-Performance Features**
-- **Connection Pooling**: Efficient resource management
-- **Caching Strategies**: Multi-level caching (L1: Ignite, L2: Application)
-- **Async Processing**: Non-blocking I/O operations
-- **Batch Operations**: Bulk data processing capabilities
-
-### 🔒 **Enterprise Security**
-
-- **Spring Security Integration**: Authentication and authorization
-- **HTTPS Support**: TLS encryption for data in transit
-- **Input Validation**: Comprehensive request sanitization
-- **Error Handling**: Secure error responses without information leakage
-- **Audit Logging**: Comprehensive access and operation logging
-
-### 📊 **Monitoring & Observability**
-
-- **Spring Boot Actuator**: Health checks, metrics, and management endpoints
-- **Prometheus Integration**: Time-series metrics collection
-- **Grafana Dashboards**: Real-time performance visualization
-- **JMX Monitoring**: JVM and application metrics exposure
-- **Distributed Tracing**: Request flow tracking across components
-
-## 🔍 **Architecture Benefits**
-
-### **Hexagonal Architecture Advantages**
-1. **Technology Independence**: Business logic unaffected by storage technology changes
-2. **Easy Testing**: Mock adapters for unit testing business logic
-3. **Deployment Flexibility**: Same codebase for different environments
-4. **Migration Safety**: Zero-risk migration between Lucene and Solr
-5. **Future-Proofing**: Easy integration of new search technologies
-
-### **Persistence Strategy Benefits**
-1. **Lucene Core**: Perfect for development, testing, and small deployments
-2. **Apache Solr**: Enterprise-grade distributed search for production clusters
-3. **Smooth Migration**: Configuration-driven switching between technologies
-4. **Cost Optimization**: Choose complexity level based on actual requirements
-
-### **When to Use Each Mode**
-
-| Scenario | Recommended Mode | Reasoning |
-|----------|------------------|-----------|
-| Development/Testing | Standalone (Lucene) | Embedded, no external dependencies |
-| Small Production (<1M records) | Standalone (Lucene) | Simple deployment, optimal performance |
-| Medium Production (1M-10M records) | Hybrid (Solr) | Shared infrastructure, better scaling |
-| Large Production (10M+ records) | Cluster (Solr) | Full distributed architecture |
-| Multi-tenant SaaS | Cluster (Solr) | Isolation, scaling, and management |
-
-## 🛠️ Technology Stack
-
-| Component | Technology | Version | Purpose |
-|-----------|------------|---------|---------|
-| **Runtime** | Java OpenJDK | 21 | Modern JVM with performance optimizations |
-| **Framework** | Spring Boot | 3.5.3 | Enterprise application framework |
-| **OData** | Apache Olingo | 5.0.0 | OData v4 protocol implementation |
-| **In-Memory DB** | Apache Ignite | 2.16.0 | Distributed computing platform |
-| **Search Engine (Standalone)** | Apache Lucene | 10.2.2 | Embedded full-text search and indexing |
-| **Search Engine (Cluster)** | Apache Solr | 9.x | Distributed search platform |
-| **Build Tool** | Maven | 3.9+ | Dependency management and build |
-| **Containerization** | Docker | 20.10+ | Production deployment |
-
-## 🚀 Quick Start
+## Testing
 
 ### Prerequisites
 - **Java 21+** (OpenJDK recommended)
@@ -193,14 +59,28 @@ This service implements a **hexagonal (ports and adapters) architecture** that e
 - **Docker & Docker Compose** (for containerized deployment)
 - **4GB+ RAM** (recommended for optimal performance)
 
-### 1. Clone and Build
+### Building 
+```bash
+# Clean build
+mvn clean compile
+
+# Run tests
+mvn test
+
+# Package application
+mvn package
+
+# Generate documentation
+mvn site
+```
+
 ```bash
 git clone <repository-url>
 cd IPjFIXsvc
 mvn clean package -DskipTests
 ```
 
-### 2. Run Locally
+### Run Locally
 ```bash
 # Development mode
 mvn spring-boot:run
@@ -210,19 +90,7 @@ java -jar target/ipjfix-svc-*.jar \
   --spring.profiles.active=production
 ```
 
-### 3. Docker Deployment (Recommended)
-```bash
-# Quick start
-./deploy.sh start
-
-# Production with monitoring
-./deploy.sh monitor --production --detached
-
-# Build custom image
-./docker-build.sh -t your-registry/ipfix-odata:v1.0.0
-```
-
-### 4. Verify Installation
+### Verify Installation
 ```bash
 # Health check
 curl http://localhost:8888/actuator/health
@@ -234,7 +102,7 @@ curl http://localhost:8888/odata/
 curl "http://localhost:8888/odata/FlowRecords?\$top=5"
 ```
 
-## 📊 OData API Usage Examples
+## OData API Usage Examples
 
 ### Basic Queries
 ```bash
@@ -299,7 +167,7 @@ GET /odata/
 GET /odata/FlowRecords/$metadata
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### **Deployment Mode Selection**
 ```properties
@@ -380,9 +248,7 @@ export IGNITE_WORK_DIRECTORY=/opt/ipfix/ignite
 export LUCENE_INDEX_PATH=/opt/ipfix/lucene
 ```
 
-## 🏗️ Data Architecture
-
-### Flow Record Schema
+### Flow Record Schema (test)
 ```json
 {
   "flowId": "uuid",
@@ -399,251 +265,3 @@ export LUCENE_INDEX_PATH=/opt/ipfix/lucene
   "application": "HTTPS"
 }
 ```
-
-### Persistence Strategy
-```
-┌─────────────────┐    ┌─────────────────┐
-│   Data Ingestion│────│  Dual Write     │
-│   (IPFIX Flows) │    │  Strategy       │
-└─────────────────┘    └─────────────────┘
-                                │
-                    ┌───────────┴────────────┐
-                    │                        │
-            ┌───────▼──────┐        ┌────────▼────────┐
-            │    Ignite    │        │     Lucene      │
-            │              │        │                 │
-            │ • Primary    │        │ • Search Index  │
-            │ • Real-time  │        │ • Analytics     │
-            │ • ACID       │        │ • Full-text     │
-            │ • Caching    │        │ • Faceting      │
-            └──────────────┘        └─────────────────┘
-```
-
-## 🧪 Testing
-
-### Automated Testing Suite
-```bash
-# Unit and integration tests
-mvn test
-
-# OData functionality tests
-./odata_functionality_test.sh
-
-# Performance tests
-./stress_test.sh              # Standard load test
-./intensive_stress_test.sh    # High-load test
-
-# Docker-based testing
-./deploy.sh test             # Complete test suite
-```
-
-### Test Coverage
-- **OData Operations**: All standard query operations
-- **Filtering Logic**: Complex boolean expressions
-- **Error Handling**: Invalid queries and edge cases
-- **Performance**: Load testing up to 10,000 requests/minute
-- **Persistence**: Dual storage validation
-- **Memory Management**: G1GC optimization validation
-
-## 📊 Performance Benchmarks
-
-### Throughput Metrics
-- **Concurrent Users**: 500+ simultaneous connections
-- **Request Rate**: 10,000+ requests/minute sustained
-- **Response Time**: <50ms average (95th percentile <200ms)
-- **Memory Usage**: Stable under 2GB heap
-- **GC Pause**: <200ms (G1GC optimized)
-
-### Storage Performance
-- **Ignite**: Sub-millisecond read/write operations
-- **Lucene**: Complex queries <100ms response time
-- **Indexing**: Real-time with <1s latency
-- **Clustering**: Linear scaling across nodes
-
-## 🚀 Production Deployment
-
-### Docker Compose (Recommended)
-```bash
-# Production deployment
-docker-compose -f docker-compose.yml up -d
-
-# With monitoring stack
-docker-compose --profile monitoring up -d
-
-# Scaling
-docker-compose up -d --scale ipfix-odata-service=3
-```
-
-### Kubernetes
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ipfix-odata-service
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: ipfix-odata-service
-  template:
-    spec:
-      containers:
-      - name: ipfix-odata-service
-        image: ipfix-odata-service:v1.0.0
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
-```
-
-### Cloud Deployment
-- **AWS ECS/EKS**: Full container orchestration
-- **Azure Container Instances**: Serverless deployment
-- **Google Cloud Run**: Auto-scaling container platform
-- **OpenShift**: Enterprise Kubernetes platform
-
-## 📊 Monitoring & Observability
-
-### Health Endpoints
-```bash
-# Application health
-GET /actuator/health
-
-# Detailed health (authentication required)
-GET /actuator/health/details
-
-# Application metrics
-GET /actuator/metrics
-
-# Prometheus format metrics
-GET /actuator/prometheus
-```
-
-### Key Metrics
-- **JVM Memory**: Heap usage, GC frequency, pause times
-- **Application**: Request rates, response times, error rates
-- **Storage**: Ignite cluster status, Lucene index size
-- **OData**: Query complexity, filter performance
-
-### Logging
-```bash
-# Application logs
-tail -f logs/application.log
-
-# GC logs
-tail -f logs/gc.log
-
-# Access logs
-tail -f logs/access.log
-```
-
-## 🔧 Development
-
-### IDE Setup
-```bash
-# Import Maven project
-# Configure Java 21
-# Set JVM args for development:
---add-opens=java.base/java.nio=ALL-UNNAMED
---add-opens=java.base/sun.nio.ch=ALL-UNNAMED
-# ... (additional module opens)
-```
-
-### Building from Source
-```bash
-# Clean build
-mvn clean compile
-
-# Run tests
-mvn test
-
-# Package application
-mvn package
-
-# Generate documentation
-mvn site
-```
-
-### Code Quality
-- **Static Analysis**: SpotBugs, PMD, Checkstyle
-- **Security Scanning**: OWASP dependency check
-- **Test Coverage**: JaCoCo reports
-- **Performance Profiling**: JProfiler integration
-
-## 🤝 Contributing
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Development Guidelines
-- Follow Java coding standards (Google Style Guide)
-- Add unit tests for new features
-- Update documentation for API changes
-- Run full test suite before submitting PR
-
-## 📋 Roadmap
-
-- [ ] **Update code to a true hexagonal architecture**: Ports/interfaces and adapters for better separation of concerns
-- [ ] **Enhance OData v4 compliance**: Full support for all query options and protocol features
-
-### Upcoming Features
-- [ ] **GraphQL API**: Alternative query interface (Interoperability with GraphQL clients)
-- [ ] **Event Streaming**: Apache Kafka integration
-- [ ] **Machine Learning**: Anomaly detection
-- [ ] **Multi-tenancy**: Tenant isolation and management
-- [ ] **Advanced Analytics**: Time-series analysis
-- [ ] **Real-time Dashboard**: Live flow monitoring
-
-### Performance Enhancements
-- [ ] **Distributed Caching**: Redis integration
-- [ ] **Query Optimization**: Cost-based optimizer
-- [ ] **Parallel Processing**: Multi-threaded query execution
-- [ ] **Memory Optimization**: Off-heap storage
-
-## 📞 Support & Documentation
-
-### Documentation
-- **[OData API Reference](docs/odata-api.md)** - Complete API documentation
-- **[Docker Deployment Guide](DOCKER_DEPLOYMENT.md)** - Container deployment
-- **[Performance Tuning Guide](docs/performance-tuning.md)** - Optimization guide
-- **[Architecture Guide](docs/architecture.md)** - Detailed system design
-
----
-
-## 🏆 Why Choose IPFIX OData Service?
-
-### ✅ **Production Ready**
-- Extensive testing and validation
-- Enterprise security standards
-- Comprehensive monitoring
-- Docker-native deployment
-
-### ✅ **High Performance**
-- Dual NoSQL persistence architecture
-- G1GC optimization for low latency
-- Horizontal scaling capabilities
-- In-memory processing with Ignite
-
-### ✅ **Standards Compliant**
-- Full OData v4 specification support
-- RESTful API design
-- Industry-standard data formats
-- Comprehensive query capabilities
-
-### ✅ **Developer Friendly**
-- Comprehensive documentation
-- Rich API examples
-- Easy deployment options
-- Active community support
-
-**Start processing your IPFIX flow data with enterprise-grade performance and standards compliance today!**
-
----
-
-*Built with ❤️ using Spring Boot, Apache Ignite, Apache Lucene, and OData v4*
