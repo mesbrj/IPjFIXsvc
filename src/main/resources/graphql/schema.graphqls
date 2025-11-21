@@ -1,0 +1,392 @@
+# GraphQL Schema for IPFIX Records
+# Based on IANA IPFIX Information Elements and CERT Enterprise Elements
+
+scalar Instant
+scalar JSON
+scalar Long
+
+# ============================
+# Query Types
+# ============================
+
+type Query {
+    """
+    Get a single IPFIX record by ID
+    """
+    ipfixRecord(id: String!): IpfixRecord
+    
+    """
+    Get a list of IPFIX records with pagination
+    """
+    ipfixRecords(limit: Int = 100, offset: Int = 0): [IpfixRecord!]!
+    
+    """
+    Get IPFIX records filtered by source IP address
+    """
+    ipfixRecordsBySourceIp(sourceIp: String!): [IpfixRecord!]!
+    
+    """
+    Get IPFIX records filtered by destination IP address
+    """
+    ipfixRecordsByDestinationIp(destinationIp: String!): [IpfixRecord!]!
+    
+    """
+    Get IPFIX records filtered by protocol identifier
+    """
+    ipfixRecordsByProtocol(protocolId: Int!): [IpfixRecord!]!
+    
+    """
+    Get IPFIX records within a time range
+    """
+    ipfixRecordsByTimeRange(startTime: String!, endTime: String!): [IpfixRecord!]!
+    
+    """
+    Get total count of IPFIX records
+    """
+    ipfixRecordsCount: Long!
+}
+
+# ============================
+# Mutation Types
+# ============================
+
+type Mutation {
+    """
+    Ingest a new IPFIX record
+    """
+    ingestIpfixRecord(input: IpfixRecordInput!): IpfixRecord!
+    
+    """
+    Delete an IPFIX record by ID
+    """
+    deleteIpfixRecord(id: String!): Boolean!
+    
+    """
+    Delete all IPFIX records
+    """
+    deleteAllIpfixRecords: Boolean!
+}
+
+# ============================
+# Main IPFIX Record Type
+# ============================
+
+type IpfixRecord {
+    # Core identification
+    id: String!
+    timestamp: Instant!
+    
+    # Standard IANA IPFIX Info Elements
+    octetDeltaCount: Long                    # IE 1
+    packetDeltaCount: Long                   # IE 2
+    deltaFlowCount: Long                     # IE 3
+    protocolIdentifier: Int                  # IE 4
+    ipClassOfService: Int                    # IE 5
+    tcpControlBits: Int                      # IE 6
+    sourceTransportPort: Int                 # IE 7
+    sourceIPv4Address: String                # IE 8
+    sourceIPv4PrefixLength: Int              # IE 9
+    ingressInterface: Int                    # IE 10
+    destinationTransportPort: Int            # IE 11
+    destinationIPv4Address: String           # IE 12
+    destinationIPv4PrefixLength: Int         # IE 13
+    egressInterface: Int                     # IE 14
+    ipNextHopIPv4Address: String             # IE 15
+    
+    # IPv6 Support
+    sourceIPv6Address: String                # IE 27
+    destinationIPv6Address: String           # IE 28
+    sourceIPv6PrefixLength: Int              # IE 29
+    destinationIPv6PrefixLength: Int         # IE 30
+    
+    # Flow timing
+    flowStartMilliseconds: Instant           # IE 152
+    flowEndMilliseconds: Instant             # IE 153
+    flowStartSysUpTime: Long                 # IE 22
+    flowEndSysUpTime: Long                   # IE 21
+    
+    # MPLS labels
+    mplsTopLabelStackSection: Int            # IE 70
+    mplsLabelStackSection2: Int              # IE 71
+    mplsLabelStackSection3: Int              # IE 72
+    
+    # Application info
+    applicationId: Int                       # IE 95
+    applicationName: String                  # IE 96
+    applicationDescription: String           # IE 94
+    
+    # Deep Packet Inspection
+    dpiInfo: DpiInfo
+    
+    # Bidirectional flow elements
+    bidirectionalFlowInfo: BidirectionalFlowInfo
+    
+    # CERT Enterprise elements
+    certInfo: CertEnterpriseInfo
+    
+    # Data structures
+    basicLists: [BasicListElement!]
+    subTemplateLists: [SubTemplateListElement!]
+    subTemplateMultiLists: [SubTemplateMultiListElement!]
+    
+    # Metadata
+    observationDomainId: Int                 # IE 149
+    exporterIPv4Address: String              # IE 130
+    exporterIPv6Address: String              # IE 131
+}
+
+# ============================
+# Deep Packet Inspection Info
+# ============================
+
+type DpiInfo {
+    # HTTP elements
+    httpRequestMethod: String                # IE 351
+    httpRequestHost: String                  # IE 352
+    httpRequestTarget: String                # IE 353
+    httpUserAgent: String                    # IE 358
+    httpStatusCode: Int                      # IE 361
+    
+    # SSL/TLS elements
+    sslServerName: String                    # IE 187
+    sslCertificateIssuer: String             # IE 188
+    sslCertificateSubject: String            # IE 189
+    sslCipherSuite: String                   # IE 185
+    sslVersion: Int                          # IE 186
+    
+    # DNS elements
+    dnsQueryName: String                     # IE 401
+    dnsQueryType: Int                        # IE 402
+    dnsResponseCode: Int                     # IE 403
+    dnsResponseName: String                  # IE 404
+    
+    # Application protocol
+    applicationProtocol: String              # IE 193
+    applicationLayerProtocolId: Int          # IE 195
+}
+
+# ============================
+# Bidirectional Flow Info
+# ============================
+
+type BidirectionalFlowInfo {
+    biflowDirection: String                  # IE 239
+    reverseOctetDeltaCount: Long
+    reversePacketDeltaCount: Long
+    reverseFlowStartMilliseconds: Instant
+    reverseFlowEndMilliseconds: Instant
+    reverseTcpControlBits: Int
+    flowDurationMilliseconds: Long           # IE 161
+    flowDurationMicroseconds: Long           # IE 162
+    minimumIpTotalLength: Long               # IE 25
+    maximumIpTotalLength: Long               # IE 26
+    reverseMinimumIpTotalLength: Long
+    reverseMaximumIpTotalLength: Long
+    minimumTTL: Int                          # IE 52
+    maximumTTL: Int                          # IE 53
+    reverseMinimumTTL: Int
+    reverseMaximumTTL: Int
+    flowEndReason: String                    # IE 136
+    flowDirection: Int                       # IE 61
+}
+
+# ============================
+# CERT Enterprise Info
+# ============================
+
+type CertEnterpriseInfo {
+    silkAppLabel: Int                        # CERT IE 33
+    payloadEntropy: String                   # CERT IE 35
+    initialTCPFlags: String                  # CERT IE 14
+    unionTCPFlags: String                    # CERT IE 15
+    reverseFlowDeltaMilliseconds: Long       # CERT IE 21
+    flowAttributes: String                   # CERT IE 40
+    flowKeyHash: Int                         # CERT IE 106
+    osName: String                           # CERT IE 36
+    osVersion: String                        # CERT IE 37
+    osFingerprint: String                    # CERT IE 107
+    payloadContent: String                   # CERT IE 18
+    payloadLength: Int                       # CERT IE 19
+    reversePayloadContent: String            # CERT IE 20
+    reversePayloadLength: Int                # CERT IE 22
+    vlanId: Int                              # CERT IE 51
+    reverseVlanId: Int                       # CERT IE 52
+    sourceMacAddress: String                 # CERT IE 80
+    destinationMacAddress: String            # CERT IE 81
+    ingressInterfaceName: String             # CERT IE 100
+    egressInterfaceName: String              # CERT IE 101
+}
+
+# ============================
+# Data Structure Types
+# ============================
+
+type BasicListElement {
+    id: String!
+    informationElementId: Int
+    informationElementName: String
+    semantic: String
+    values: [String!]
+    dataType: String
+}
+
+type SubTemplateListElement {
+    id: String!
+    templateId: Int
+    templateName: String
+    semantic: String
+    entries: [JSON!]
+    templateDefinition: JSON
+}
+
+type SubTemplateMultiListElement {
+    id: String!
+    semantic: String
+    subTemplateLists: [SubTemplateListElement!]
+    description: String
+}
+
+# ============================
+# Input Types for Mutations
+# ============================
+
+input IpfixRecordInput {
+    # Standard IANA IPFIX Info Elements
+    octetDeltaCount: Long
+    packetDeltaCount: Long
+    deltaFlowCount: Long
+    protocolIdentifier: Int
+    ipClassOfService: Int
+    tcpControlBits: Int
+    sourceTransportPort: Int
+    sourceIPv4Address: String
+    sourceIPv4PrefixLength: Int
+    ingressInterface: Int
+    destinationTransportPort: Int
+    destinationIPv4Address: String
+    destinationIPv4PrefixLength: Int
+    egressInterface: Int
+    ipNextHopIPv4Address: String
+    
+    # IPv6 Support
+    sourceIPv6Address: String
+    destinationIPv6Address: String
+    sourceIPv6PrefixLength: Int
+    destinationIPv6PrefixLength: Int
+    
+    # Flow timing
+    flowStartMilliseconds: Instant
+    flowEndMilliseconds: Instant
+    flowStartSysUpTime: Long
+    flowEndSysUpTime: Long
+    
+    # MPLS labels
+    mplsTopLabelStackSection: Int
+    mplsLabelStackSection2: Int
+    mplsLabelStackSection3: Int
+    
+    # Application info
+    applicationId: Int
+    applicationName: String
+    applicationDescription: String
+    
+    # Complex types
+    dpiInfo: DpiInfoInput
+    bidirectionalFlowInfo: BidirectionalFlowInfoInput
+    certInfo: CertEnterpriseInfoInput
+    
+    # Data structures
+    basicLists: [BasicListElementInput!]
+    subTemplateLists: [SubTemplateListElementInput!]
+    subTemplateMultiLists: [SubTemplateMultiListElementInput!]
+    
+    # Metadata
+    observationDomainId: Int
+    exporterIPv4Address: String
+    exporterIPv6Address: String
+}
+
+input DpiInfoInput {
+    httpRequestMethod: String
+    httpRequestHost: String
+    httpRequestTarget: String
+    httpUserAgent: String
+    httpStatusCode: Int
+    sslServerName: String
+    sslCertificateIssuer: String
+    sslCertificateSubject: String
+    sslCipherSuite: String
+    sslVersion: Int
+    dnsQueryName: String
+    dnsQueryType: Int
+    dnsResponseCode: Int
+    dnsResponseName: String
+    applicationProtocol: String
+    applicationLayerProtocolId: Int
+}
+
+input BidirectionalFlowInfoInput {
+    biflowDirection: String
+    reverseOctetDeltaCount: Long
+    reversePacketDeltaCount: Long
+    reverseFlowStartMilliseconds: Instant
+    reverseFlowEndMilliseconds: Instant
+    reverseTcpControlBits: Int
+    flowDurationMilliseconds: Long
+    flowDurationMicroseconds: Long
+    minimumIpTotalLength: Long
+    maximumIpTotalLength: Long
+    reverseMinimumIpTotalLength: Long
+    reverseMaximumIpTotalLength: Long
+    minimumTTL: Int
+    maximumTTL: Int
+    reverseMinimumTTL: Int
+    reverseMaximumTTL: Int
+    flowEndReason: String
+    flowDirection: Int
+}
+
+input CertEnterpriseInfoInput {
+    silkAppLabel: Int
+    payloadEntropy: String
+    initialTCPFlags: String
+    unionTCPFlags: String
+    reverseFlowDeltaMilliseconds: Long
+    flowAttributes: String
+    flowKeyHash: Int
+    osName: String
+    osVersion: String
+    osFingerprint: String
+    payloadContent: String
+    payloadLength: Int
+    reversePayloadContent: String
+    reversePayloadLength: Int
+    vlanId: Int
+    reverseVlanId: Int
+    sourceMacAddress: String
+    destinationMacAddress: String
+    ingressInterfaceName: String
+    egressInterfaceName: String
+}
+
+input BasicListElementInput {
+    informationElementId: Int
+    informationElementName: String
+    semantic: String
+    values: [String!]
+    dataType: String
+}
+
+input SubTemplateListElementInput {
+    templateId: Int
+    templateName: String
+    semantic: String
+    entries: [JSON!]
+    templateDefinition: JSON
+}
+
+input SubTemplateMultiListElementInput {
+    semantic: String
+    subTemplateLists: [SubTemplateListElementInput!]
+    description: String
+}

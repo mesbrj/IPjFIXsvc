@@ -1,149 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-	<groupId>com.ipfix-scenario-ai</groupId>
-	<artifactId>ipjfix-svc</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>ipjfix-svc</name>
-	<description>IPjFIXsvc: IPFIX Scenario AI component</description>
-  <packaging>jar</packaging>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <properties>
-    <java.version>21</java.version>
-    <spring.boot.version>3.5.3</spring.boot.version>
-    <olingo.version>5.0.0</olingo.version>
-    <ignite.version>2.16.0</ignite.version>
-    <lucene.version>10.2.2</lucene.version>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-dependencies</artifactId>
-      <version>${spring.boot.version}</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <!-- Spring Boot - version managed by dependencyManagement -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-
-    <!-- Olingo OData v4 -->
-    <dependency>
-      <groupId>org.apache.olingo</groupId>
-      <artifactId>odata-server-api</artifactId>
-      <version>${olingo.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.olingo</groupId>
-      <artifactId>odata-server-core</artifactId>
-      <version>${olingo.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.olingo</groupId>
-      <artifactId>odata-commons-api</artifactId>
-      <version>${olingo.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.olingo</groupId>
-      <artifactId>odata-commons-core</artifactId>
-      <version>${olingo.version}</version>
-    </dependency>
-
-    <!-- Apache Ignite / Spring Integration -->
-    <dependency>
-      <groupId>org.apache.ignite</groupId>
-      <artifactId>ignite-core</artifactId>
-      <version>${ignite.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.ignite</groupId>
-      <artifactId>ignite-spring</artifactId>
-      <version>${ignite.version}</version>
-    </dependency>
-
-    <!-- Lucene -->
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analysis-common</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-queryparser</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-
-    <!-- DevTools & Testing -->
-    <!-- DevTools disabled to avoid class loader issues with Ignite
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-devtools</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
-        <configuration>
-          <source>21</source>
-          <target>21</target>
-          <release>21</release>
-        </configuration>
-      </plugin>
-      <plugin>
+    <parent>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>${spring.boot.version}</version>
-        <configuration>
-          <jvmArguments>
-            --add-opens=java.base/java.nio=ALL-UNNAMED
-            --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
-            --add-opens=java.base/java.lang=ALL-UNNAMED
-            --add-opens=java.base/sun.misc=ALL-UNNAMED
-            --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
-            --add-opens=java.base/java.io=ALL-UNNAMED
-            --add-opens=java.base/java.util=ALL-UNNAMED
-            --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
-            --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED
-            --add-opens=java.base/java.net=ALL-UNNAMED
-            --add-opens=java.base/javax.net.ssl=ALL-UNNAMED
-            --add-opens=java.base/java.security=ALL-UNNAMED
-            --add-opens=java.base/java.time=ALL-UNNAMED
-            --add-opens=java.sql/java.sql=ALL-UNNAMED
-            --add-opens=java.management/javax.management=ALL-UNNAMED
-            --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED
-            --add-exports=java.base/sun.nio.ch=ALL-UNNAMED
-            --add-exports=java.base/sun.security.util=ALL-UNNAMED
-            --add-modules=java.se
-            --enable-native-access=ALL-UNNAMED
-          </jvmArguments>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.ipfix</groupId>
+    <artifactId>graphql-ipfix-api</artifactId>
+    <version>1.0.0</version>
+    <name>GraphQL IPFIX API</name>
+    <description>GraphQL API for IPFIX Records Ingestion</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter GraphQL -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-graphql</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Lombok for reducing boilerplate -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Boot Starter Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- GraphQL Test Support -->
+        <dependency>
+            <groupId>org.springframework.graphql</groupId>
+            <artifactId>spring-graphql-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
